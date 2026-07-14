@@ -51,7 +51,7 @@
 	<key>createdby</key>
 	<string>revolyw</string>
 	<key>description</key>
-	<string>将多行文本转为单行，可选择包裹符与分隔符</string>
+	<string>Convert multiline text into one line with selectable wrappers and separators</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
@@ -74,7 +74,7 @@
 				<key>escaping</key>
 				<integer>0</integer>
 				<key>keyword</key>
-				<string>m2s</string>
+				<string>{var:keyword}</string>
 				<key>queuedelaycustom</key>
 				<integer>3</integer>
 				<key>queuedelayimmediatelyinitially</key>
@@ -84,7 +84,7 @@
 				<key>queuemode</key>
 				<integer>1</integer>
 				<key>runningsubtext</key>
-				<string>转换中…</string>
+				<string>Converting…</string>
 				<key>script</key>
 				<string></string>
 				<key>scriptargtype</key>
@@ -92,7 +92,7 @@
 				<key>scriptfile</key>
 				<string>filter.py</string>
 				<key>subtext</key>
-				<string>多行 → 单行（默认读剪贴板）</string>
+				<string>Join lines with quotes and separators (clipboard by default)</string>
 				<key>title</key>
 				<string>Multiline to Single</string>
 				<key>type</key>
@@ -138,7 +138,7 @@
 				<key>text</key>
 				<string>{query}</string>
 				<key>title</key>
-				<string>已复制到剪贴板</string>
+				<string>Copied to Clipboard</string>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.notification</string>
@@ -180,17 +180,35 @@
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>Keyword m2s: convert multiline clipboard/selection text into one line.
-Use arrow keys to choose wrap/separator mode, then Enter to copy.
+	<string>## Usage
 
-Modes:
-1. Single quotes + comma
-2. Double quotes + comma
-3. Single quotes + comma+space
-4. Double quotes + comma+space
+1. Copy multiline text (or select text and use the Hotkey).
+2. Type the keyword (default `m2s`).
+3. Choose a wrap/separator mode with ↑↓ and press ↩ to copy.
 
+## Modes
+
+* `'a','b','c'` — single quotes + comma
+* `"a","b","c"` — double quotes + comma
+* `'a', 'b', 'c'` — single quotes + comma+space
+* `"a", "b", "c"` — double quotes + comma+space
+
+Blank lines are skipped. Quote characters inside lines are escaped.
+
+## Workflow’s Configuration
+
+* **Keyword** — change the Alfred keyword (default `m2s`)
+* **Default mode** — which mode appears first in the list
+* **UI language** — English or Chinese labels
+
+## Hotkey
+
+Bind the Hotkey object to convert the current macOS selection.
+
+Forum: https://www.alfredforum.com/topic/23902-multiline-to-single-join-lines-with-quotes-separators/
 Homepage: https://github.com/revolyw/alfred-multiline-to-single
-License: MIT</string>
+License: MIT
+</string>
 	<key>uidata</key>
 	<dict>
 		<key>0B91C339-7244-44FA-A908-8B352EC372A4</key>
@@ -223,12 +241,103 @@ License: MIT</string>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
-	<array/>
+	<array>
+		<dict>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>keyword</string>
+			<key>label</key>
+			<string>Keyword</string>
+			<key>description</key>
+			<string>Alfred keyword used to invoke this workflow (at least 3 characters recommended).</string>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>m2s</string>
+				<key>placeholder</key>
+				<string>m2s</string>
+				<key>required</key>
+				<true/>
+				<key>trim</key>
+				<true/>
+			</dict>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>popupbutton</string>
+			<key>variable</key>
+			<string>default_mode</string>
+			<key>label</key>
+			<string>Default mode</string>
+			<key>description</key>
+			<string>Mode shown first when browsing results.</string>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>sq_comma</string>
+				<key>pairs</key>
+				<array>
+					<array>
+						<string>Single quotes + comma ('a','b')</string>
+						<string>sq_comma</string>
+					</array>
+					<array>
+						<string>Double quotes + comma ("a","b")</string>
+						<string>dq_comma</string>
+					</array>
+					<array>
+						<string>Single quotes + comma+space ('a', 'b')</string>
+						<string>sq_comma_space</string>
+					</array>
+					<array>
+						<string>Double quotes + comma+space ("a", "b")</string>
+						<string>dq_comma_space</string>
+					</array>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>popupbutton</string>
+			<key>variable</key>
+			<string>ui_language</string>
+			<key>label</key>
+			<string>UI language</string>
+			<key>description</key>
+			<string>Language for result titles and messages.</string>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>en</string>
+				<key>pairs</key>
+				<array>
+					<array>
+						<string>English</string>
+						<string>en</string>
+					</array>
+					<array>
+						<string>中文 Chinese</string>
+						<string>zh</string>
+					</array>
+				</array>
+			</dict>
+		</dict>
+	</array>
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>
-	<string>1.0.0</string>
+	<string>1.1.0</string>
 	<key>webaddress</key>
 	<string>https://github.com/revolyw/alfred-multiline-to-single</string>
+	<key>variables</key>
+	<dict>
+		<key>keyword</key>
+		<string>m2s</string>
+		<key>default_mode</key>
+		<string>sq_comma</string>
+		<key>ui_language</key>
+		<string>en</string>
+	</dict>
 </dict>
 </plist>

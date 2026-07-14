@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import unittest
 from unittest import mock
 
@@ -39,31 +40,46 @@ class ConvertTests(unittest.TestCase):
 
 
 class BuildItemsTests(unittest.TestCase):
-    def test_modes_from_query(self) -> None:
-        payload = m.build_items("x\ny")
+    def test_modes_from_query_english(self) -> None:
+        with mock.patch.dict(os.environ, {"ui_language": "en", "default_mode": "sq_comma"}):
+            payload = m.build_items("x\ny")
         self.assertEqual(len(payload["items"]), 4)
+        self.assertEqual(payload["items"][0]["title"], "Single quotes + comma")
         self.assertEqual(payload["items"][0]["arg"], "'x','y'")
         self.assertEqual(payload["items"][1]["arg"], '"x","y"')
-        self.assertEqual(payload["items"][2]["arg"], "'x', 'y'")
-        self.assertEqual(payload["items"][3]["arg"], '"x", "y"')
         self.assertTrue(payload["items"][0]["valid"])
 
+    def test_chinese_ui(self) -> None:
+        with mock.patch.dict(os.environ, {"ui_language": "zh"}):
+            payload = m.build_items("x\ny")
+        self.assertEqual(payload["items"][0]["title"], "单引号 + 逗号")
+
+    def test_default_mode_reorders(self) -> None:
+        with mock.patch.dict(os.environ, {"ui_language": "en", "default_mode": "dq_comma"}):
+            payload = m.build_items("x\ny")
+        self.assertEqual(payload["items"][0]["arg"], '"x","y"')
+        self.assertEqual(payload["items"][0]["title"], "Double quotes + comma")
+
     def test_empty_shows_invalid_item(self) -> None:
-        with mock.patch.object(m, "read_clipboard", return_value=""):
-            payload = m.build_items("")
+        with mock.patch.dict(os.environ, {"ui_language": "en"}):
+            with mock.patch.object(m, "read_clipboard", return_value=""):
+                payload = m.build_items("")
         self.assertEqual(len(payload["items"]), 1)
         self.assertFalse(payload["items"][0]["valid"])
+        self.assertEqual(payload["items"][0]["title"], "No text available")
 
     def test_clipboard_fallback(self) -> None:
-        with mock.patch.object(m, "read_clipboard", return_value="one\ntwo"):
-            payload = m.build_items("   ")
+        with mock.patch.dict(os.environ, {"ui_language": "zh"}):
+            with mock.patch.object(m, "read_clipboard", return_value="one\ntwo"):
+                payload = m.build_items("   ")
         self.assertEqual(payload["items"][0]["arg"], "'one','two'")
         self.assertIn("剪贴板", payload["items"][0]["subtitle"])
 
     def test_main_prints_json(self) -> None:
-        with mock.patch.object(m.sys, "argv", ["filter.py", "a\nb"]):
-            with mock.patch("builtins.print") as printed:
-                m.main()
+        with mock.patch.dict(os.environ, {"ui_language": "en"}):
+            with mock.patch.object(m.sys, "argv", ["filter.py", "a\nb"]):
+                with mock.patch("builtins.print") as printed:
+                    m.main()
         raw = printed.call_args[0][0]
         data = json.loads(raw)
         self.assertEqual(data["items"][0]["arg"], "'a','b'")

@@ -11,6 +11,7 @@ required=(
   filter.py
   LICENSE
   README.md
+  icon.png
 )
 
 for f in "${required[@]}"; do

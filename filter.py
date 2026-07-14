@@ -4,18 +4,85 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 
-MODES: List[Tuple[str, str, str, str]] = [
-    # title, subtitle_hint, wrap, separator
-    ("单引号 + 逗号", "每行用 ' 包裹，以 , 分隔", "'", ","),
-    ("双引号 + 逗号", '每行用 " 包裹，以 , 分隔', '"', ","),
-    ("单引号 + 逗号空格", "每行用 ' 包裹，以 ,␠ 分隔", "'", ", "),
-    ("双引号 + 逗号空格", '每行用 " 包裹，以 ,␠ 分隔', '"', ", "),
+Mode = Tuple[str, str, str, str]  # title_key, hint_key, wrap, separator
+
+MODE_DEFS: List[Mode] = [
+    ("mode_sq_comma", "hint_sq_comma", "'", ","),
+    ("mode_dq_comma", "hint_dq_comma", '"', ","),
+    ("mode_sq_comma_space", "hint_sq_comma_space", "'", ", "),
+    ("mode_dq_comma_space", "hint_dq_comma_space", '"', ", "),
 ]
+
+STRINGS: Dict[str, Dict[str, str]] = {
+    "en": {
+        "mode_sq_comma": "Single quotes + comma",
+        "mode_dq_comma": "Double quotes + comma",
+        "mode_sq_comma_space": "Single quotes + comma+space",
+        "mode_dq_comma_space": "Double quotes + comma+space",
+        "hint_sq_comma": "Wrap each line with ' and join with ,",
+        "hint_dq_comma": 'Wrap each line with " and join with ,',
+        "hint_sq_comma_space": "Wrap each line with ' and join with ,␠",
+        "hint_dq_comma_space": 'Wrap each line with " and join with ,␠',
+        "no_text": "No text available",
+        "no_text_sub": "Copy multiline text first, or pass text after the keyword",
+        "no_lines": "No valid lines",
+        "no_lines_sub": "Input is empty or only blank lines",
+        "source_query": "query",
+        "source_clipboard": "clipboard",
+        "lines_unit": "lines",
+    },
+    "zh": {
+        "mode_sq_comma": "单引号 + 逗号",
+        "mode_dq_comma": "双引号 + 逗号",
+        "mode_sq_comma_space": "单引号 + 逗号空格",
+        "mode_dq_comma_space": "双引号 + 逗号空格",
+        "hint_sq_comma": "每行用 ' 包裹，以 , 分隔",
+        "hint_dq_comma": '每行用 " 包裹，以 , 分隔',
+        "hint_sq_comma_space": "每行用 ' 包裹，以 ,␠ 分隔",
+        "hint_dq_comma_space": '每行用 " 包裹，以 ,␠ 分隔',
+        "no_text": "没有可用文本",
+        "no_text_sub": "请先复制多行文本到剪贴板，或在关键词后粘贴文本",
+        "no_lines": "没有有效行",
+        "no_lines_sub": "文本为空或全是空白行",
+        "source_query": "输入",
+        "source_clipboard": "剪贴板",
+        "lines_unit": "行",
+    },
+}
+
+
+def ui_language() -> str:
+    lang = os.environ.get("ui_language", "en").strip().lower()
+    return lang if lang in STRINGS else "en"
+
+
+def t(key: str) -> str:
+    lang = ui_language()
+    return STRINGS[lang].get(key) or STRINGS["en"][key]
+
+
+def default_mode_id() -> str:
+    value = os.environ.get("default_mode", "sq_comma").strip()
+    allowed = {
+        "sq_comma": "mode_sq_comma",
+        "dq_comma": "mode_dq_comma",
+        "sq_comma_space": "mode_sq_comma_space",
+        "dq_comma_space": "mode_dq_comma_space",
+    }
+    return allowed.get(value, "mode_sq_comma")
+
+
+def ordered_modes() -> List[Mode]:
+    preferred = default_mode_id()
+    preferred_modes = [m for m in MODE_DEFS if m[0] == preferred]
+    others = [m for m in MODE_DEFS if m[0] != preferred]
+    return preferred_modes + others
 
 
 def read_clipboard() -> str:
@@ -28,21 +95,19 @@ def read_clipboard() -> str:
 def get_input_text(query: str) -> Tuple[str, str]:
     """Return (text, source_label). Prefer non-empty Alfred query, else clipboard."""
     if query.strip():
-        return query, "输入"
+        return query, t("source_query")
     clip = read_clipboard()
     if clip.strip():
-        return clip, "剪贴板"
+        return clip, t("source_clipboard")
     return "", ""
 
 
 def split_lines(text: str) -> List[str]:
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-    # 去掉首尾空行，保留中间空行会显得奇怪，统一丢弃纯空白行
     return [line for line in lines if line.strip() != ""]
 
 
 def escape_line(line: str, wrap: str) -> str:
-    # 先转义反斜杠，再转义包裹符，便于粘贴到代码/SQL 等场景
     return line.replace("\\", "\\\\").replace(wrap, f"\\{wrap}")
 
 
@@ -78,8 +143,8 @@ def build_items(query: str) -> dict:
         return {
             "items": [
                 item(
-                    "没有可用文本",
-                    "请先复制多行文本到剪贴板，或在关键词后粘贴文本",
+                    t("no_text"),
+                    t("no_text_sub"),
                     "",
                     valid=False,
                 )
@@ -91,8 +156,8 @@ def build_items(query: str) -> dict:
         return {
             "items": [
                 item(
-                    "没有有效行",
-                    "文本为空或全是空白行",
+                    t("no_lines"),
+                    t("no_lines_sub"),
                     "",
                     valid=False,
                 )
@@ -100,10 +165,13 @@ def build_items(query: str) -> dict:
         }
 
     items = []
-    for title, hint, wrap, separator in MODES:
+    for title_key, hint_key, wrap, separator in ordered_modes():
         result = convert(lines, wrap, separator)
-        subtitle = f"{hint} · {len(lines)} 行 · 来自{source} · {preview(result)}"
-        items.append(item(title, subtitle, result))
+        subtitle = (
+            f"{t(hint_key)} · {len(lines)} {t('lines_unit')} · "
+            f"{source} · {preview(result)}"
+        )
+        items.append(item(t(title_key), subtitle, result))
 
     return {"items": items}
 
