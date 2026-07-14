@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Package workflow
+        run: ./package.sh
+
+      - name: Verify package artifact
+        run: |
+          test -f "Multiline to Single.alfredworkflow"
+          unzip -l "Multiline to Single.alfredworkflow" | grep -E 'filter\.py|info\.plist|LICENSE|README\.md'
