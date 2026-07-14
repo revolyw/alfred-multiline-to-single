@@ -65,6 +65,19 @@ open "Multiline to Single.alfredworkflow"
 
 在 Alfred → Preferences → Workflows → **Multiline to Single** 中为 Hotkey 节点绑定快捷键。热键参数为「Selection in macOS」，选中文本后即可触发。
 
+### 配置
+
+Alfred → Workflows → **Multiline to Single** → `[x]`：
+
+- **Keyword**：触发关键词（默认 `m2s`）
+- **Default mode**：结果列表置顶的模式
+- **UI language**：界面语言（English / 中文）
+
+## 社区 / Gallery
+
+- Alfred 论坛帖：[Multiline to Single](https://www.alfredforum.com/topic/23902-multiline-to-single-join-lines-with-quotes-separators/)
+- 发帖底稿：[`docs/FORUM_POST.md`](docs/FORUM_POST.md)
+
 ## 开发
 
 ```bash
@@ -84,7 +97,9 @@ python3 filter.py $'a\nb'
 ```text
 ├── filter.py          # Script Filter 入口
 ├── info.plist         # Alfred workflow 定义
+├── icon.png           # 256×256 图标
 ├── package.sh         # 打包脚本
+├── docs/FORUM_POST.md # Alfred 论坛英文帖草稿
 ├── tests/             # 单元测试
 └── .github/           # Issue / PR 模板与 CI
 ```

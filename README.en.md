@@ -63,6 +63,19 @@ open "Multiline to Single.alfredworkflow"
 
 Optional: bind the Hotkey object in the workflow (argument = Selection in macOS).
 
+### Configuration
+
+Alfred → Workflows → **Multiline to Single** → `[x]`:
+
+- **Keyword** (default `m2s`)
+- **Default mode** (which option appears first)
+- **UI language** (English / Chinese)
+
+### Community / Gallery
+
+- Alfred forum thread: [Multiline to Single](https://www.alfredforum.com/topic/23902-multiline-to-single-join-lines-with-quotes-separators/)
+- Post draft archive: [`docs/FORUM_POST.md`](docs/FORUM_POST.md)
+
 ## Development
 
 ```bash
