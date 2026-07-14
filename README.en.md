@@ -84,6 +84,23 @@ python3 filter.py
 ./package.sh
 ```
 
+## Releasing
+
+Releases follow [SemVer](https://semver.org/). Pushing a `v*` tag runs GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)): tests → `./package.sh` → GitHub Release with `Multiline.to.Single.alfredworkflow`.
+
+1. Bump `version` in `info.plist` and update [CHANGELOG.md](CHANGELOG.md)
+2. Commit and push to `master`
+3. Tag and push:
+
+```bash
+git tag -a v1.2.0 -m "v1.2.0: short summary"
+git push origin v1.2.0
+```
+
+4. Confirm the Release workflow in [Actions](https://github.com/revolyw/alfred-multiline-to-single/actions), then check [Releases](https://github.com/revolyw/alfred-multiline-to-single/releases)
+
+Prefer a new patch/minor tag over force-updating an existing tag. CI builds the installable workflow; local `./package.sh` is for smoke-testing.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

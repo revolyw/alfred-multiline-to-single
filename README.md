@@ -104,6 +104,25 @@ python3 filter.py $'a\nb'
 └── .github/           # Issue / PR 模板与 CI
 ```
 
+## 发布
+
+发布遵循 [SemVer](https://semver.org/)，通过推送 `v*` tag 触发 GitHub Actions（[`.github/workflows/release.yml`](.github/workflows/release.yml)）：跑测试 → `./package.sh` → 创建 GitHub Release 并上传 `Multiline.to.Single.alfredworkflow`。
+
+步骤：
+
+1. 更新 `info.plist` 的 `version`，并在 [CHANGELOG.md](CHANGELOG.md) 写下本版本说明  
+2. 提交并推送到 `master`  
+3. 打 annotated tag 并推送：
+
+```bash
+git tag -a v1.2.0 -m "v1.2.0: 简述改动"
+git push origin v1.2.0
+```
+
+4. 在 [Actions](https://github.com/revolyw/alfred-multiline-to-single/actions) 确认 Release 工作流成功，再到 [Releases](https://github.com/revolyw/alfred-multiline-to-single/releases) 核对安装包  
+
+注意：不要改历史 tag 后强制推送（除非明确要修复已损坏的发布）；小版本用新 tag（如 `v1.2.1`）。仓库内的 `.alfredworkflow` 以 CI 打包产物为准，本地 `./package.sh` 主要用于自测。
+
 ## 贡献
 
 欢迎 Issue 与 PR。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
