@@ -12,6 +12,7 @@ venv/
 *.egg-info/
 dist/
 build/
+docs/post_and_reply
 
 # Local Alfred preference copies / editor junk
 *.swp
