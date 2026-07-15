@@ -7,52 +7,62 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 
-Mode = Tuple[str, str, str, str]  # title_key, hint_key, wrap, separator
+@dataclass(frozen=True)
+class Mode:
+    title: str
+    hint: str
+    wrap: str
+    separator: str
 
-MODE_DEFS: List[Mode] = [
-    ("mode_sq_comma", "hint_sq_comma", "'", ","),
-    ("mode_dq_comma", "hint_dq_comma", '"', ","),
-    ("mode_sq_comma_space", "hint_sq_comma_space", "'", ", "),
-    ("mode_dq_comma_space", "hint_dq_comma_space", '"', ", "),
-]
+
+# Default catalog (also used as Workflow Configuration placeholder).
+# Format per line: WRAPPER||SEPARATOR||optional title
+DEFAULT_CUSTOM_MODES = """\
+# WRAPPER||SEPARATOR||optional title
+# Leave WRAPPER empty for no quotes. Escapes: \\s = space, \\t = tab, \\\\ = backslash
+'||,||Single quotes + comma
+"||,||Double quotes + comma
+'||,\\s||Single quotes + comma+space
+"||,\\s||Double quotes + comma+space
+||,||Join with comma
+||;||Join with semicolon
+||:\\s||Join with colon+space
+"""
 
 STRINGS: Dict[str, Dict[str, str]] = {
     "en": {
-        "mode_sq_comma": "Single quotes + comma",
-        "mode_dq_comma": "Double quotes + comma",
-        "mode_sq_comma_space": "Single quotes + comma+space",
-        "mode_dq_comma_space": "Double quotes + comma+space",
-        "hint_sq_comma": "Wrap each line with ' and join with ,",
-        "hint_dq_comma": 'Wrap each line with " and join with ,',
-        "hint_sq_comma_space": "Wrap each line with ' and join with ,␠",
-        "hint_dq_comma_space": 'Wrap each line with " and join with ,␠',
         "no_text": "No text available",
         "no_text_sub": "Copy multiline text first, or pass text after the keyword",
         "no_lines": "No valid lines",
         "no_lines_sub": "Input is empty or only blank lines",
+        "no_modes": "No modes configured",
+        "no_modes_sub": "Add lines in Workflow Configuration → Custom modes",
         "source_query": "query",
         "source_clipboard": "clipboard",
         "lines_unit": "lines",
+        "wrap_join": "Wrap with {wrap} and join with {sep}",
+        "join_only": "Join with {sep}",
+        "auto_title_wrap": "{wrap}…{wrap} + {sep}",
+        "auto_title_join": "Join with {sep}",
     },
     "zh": {
-        "mode_sq_comma": "单引号 + 逗号",
-        "mode_dq_comma": "双引号 + 逗号",
-        "mode_sq_comma_space": "单引号 + 逗号空格",
-        "mode_dq_comma_space": "双引号 + 逗号空格",
-        "hint_sq_comma": "每行用 ' 包裹，以 , 分隔",
-        "hint_dq_comma": '每行用 " 包裹，以 , 分隔',
-        "hint_sq_comma_space": "每行用 ' 包裹，以 ,␠ 分隔",
-        "hint_dq_comma_space": '每行用 " 包裹，以 ,␠ 分隔',
         "no_text": "没有可用文本",
         "no_text_sub": "请先复制多行文本到剪贴板，或在关键词后粘贴文本",
         "no_lines": "没有有效行",
         "no_lines_sub": "文本为空或全是空白行",
+        "no_modes": "未配置模式",
+        "no_modes_sub": "请在 Workflow Configuration → Custom modes 中添加行",
         "source_query": "输入",
         "source_clipboard": "剪贴板",
         "lines_unit": "行",
+        "wrap_join": "每行用 {wrap} 包裹，以 {sep} 分隔",
+        "join_only": "以 {sep} 分隔（无包裹）",
+        "auto_title_wrap": "{wrap}…{wrap} + {sep}",
+        "auto_title_join": "分隔符 {sep}",
     },
 }
 
@@ -67,22 +77,78 @@ def t(key: str) -> str:
     return STRINGS[lang].get(key) or STRINGS["en"][key]
 
 
-def default_mode_id() -> str:
-    value = os.environ.get("default_mode", "sq_comma").strip()
-    allowed = {
-        "sq_comma": "mode_sq_comma",
-        "dq_comma": "mode_dq_comma",
-        "sq_comma_space": "mode_sq_comma_space",
-        "dq_comma_space": "mode_dq_comma_space",
-    }
-    return allowed.get(value, "mode_sq_comma")
+def visible_sep(sep: str) -> str:
+    if sep == "":
+        return "∅"
+    return sep.replace(" ", "␠").replace("\t", "↹")
 
 
-def ordered_modes() -> List[Mode]:
-    preferred = default_mode_id()
-    preferred_modes = [m for m in MODE_DEFS if m[0] == preferred]
-    others = [m for m in MODE_DEFS if m[0] != preferred]
-    return preferred_modes + others
+def unescape(value: str) -> str:
+    """Interpret \\s \\t \\n \\\\ and \\| inside WRAPPER/SEPARATOR fields."""
+    out: List[str] = []
+    i = 0
+    while i < len(value):
+        ch = value[i]
+        if ch == "\\" and i + 1 < len(value):
+            nxt = value[i + 1]
+            mapping = {
+                "s": " ",
+                "t": "\t",
+                "n": "\n",
+                "\\": "\\",
+                "|": "|",
+            }
+            out.append(mapping.get(nxt, nxt))
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def auto_title(wrap: str, separator: str) -> str:
+    sep = visible_sep(separator)
+    if wrap:
+        return t("auto_title_wrap").format(wrap=wrap, sep=sep)
+    return t("auto_title_join").format(sep=sep)
+
+
+def auto_hint(wrap: str, separator: str) -> str:
+    sep = visible_sep(separator)
+    if wrap:
+        return t("wrap_join").format(wrap=wrap, sep=sep)
+    return t("join_only").format(sep=sep)
+
+
+def parse_modes(text: str) -> List[Mode]:
+    modes: List[Mode] = []
+    for raw in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = [p for p in line.split("||")]
+        if len(parts) == 1:
+            # Allow WRAPPER||SEPARATOR typed with missing trailing parts
+            wrap, separator, title = parts[0], "", ""
+        elif len(parts) == 2:
+            wrap, separator, title = parts[0], parts[1], ""
+        else:
+            wrap, separator, title = parts[0], parts[1], "||".join(parts[2:]).strip()
+
+        wrap = unescape(wrap)
+        separator = unescape(separator)
+        title = title.strip()
+        if not title:
+            title = auto_title(wrap, separator)
+        modes.append(Mode(title=title, hint=auto_hint(wrap, separator), wrap=wrap, separator=separator))
+    return modes
+
+
+def configured_modes() -> List[Mode]:
+    raw = os.environ.get("custom_modes")
+    if raw is None or raw.strip() == "":
+        raw = DEFAULT_CUSTOM_MODES
+    return parse_modes(raw)
 
 
 def read_clipboard() -> str:
@@ -108,11 +174,15 @@ def split_lines(text: str) -> List[str]:
 
 
 def escape_line(line: str, wrap: str) -> str:
+    if not wrap:
+        return line
     return line.replace("\\", "\\\\").replace(wrap, f"\\{wrap}")
 
 
 def convert(lines: List[str], wrap: str, separator: str) -> str:
-    return separator.join(f"{wrap}{escape_line(line, wrap)}{wrap}" for line in lines)
+    if wrap:
+        return separator.join(f"{wrap}{escape_line(line, wrap)}{wrap}" for line in lines)
+    return separator.join(lines)
 
 
 def preview(text: str, limit: int = 120) -> str:
@@ -142,12 +212,7 @@ def build_items(query: str) -> dict:
     if not text.strip():
         return {
             "items": [
-                item(
-                    t("no_text"),
-                    t("no_text_sub"),
-                    "",
-                    valid=False,
-                )
+                item(t("no_text"), t("no_text_sub"), "", valid=False)
             ]
         }
 
@@ -155,23 +220,26 @@ def build_items(query: str) -> dict:
     if not lines:
         return {
             "items": [
-                item(
-                    t("no_lines"),
-                    t("no_lines_sub"),
-                    "",
-                    valid=False,
-                )
+                item(t("no_lines"), t("no_lines_sub"), "", valid=False)
+            ]
+        }
+
+    modes = configured_modes()
+    if not modes:
+        return {
+            "items": [
+                item(t("no_modes"), t("no_modes_sub"), "", valid=False)
             ]
         }
 
     items = []
-    for title_key, hint_key, wrap, separator in ordered_modes():
-        result = convert(lines, wrap, separator)
+    for mode in modes:
+        result = convert(lines, mode.wrap, mode.separator)
         subtitle = (
-            f"{t(hint_key)} · {len(lines)} {t('lines_unit')} · "
+            f"{mode.hint} · {len(lines)} {t('lines_unit')} · "
             f"{source} · {preview(result)}"
         )
-        items.append(item(t(title_key), subtitle, result))
+        items.append(item(mode.title, subtitle, result))
 
     return {"items": items}
 

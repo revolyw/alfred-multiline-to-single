@@ -13,16 +13,16 @@
 ## 功能
 
 - 默认读取**剪贴板**中的多行文本（也支持关键词参数 / 选中文本热键）
-- 上下选择转换模式：
+- 上下选择转换模式；可在配置里**自定义任意包裹符 / 分隔符组合**
+- 默认内置若干常用模式，例如：
 
   | 模式 | 示例输出 |
   | --- | --- |
   | 单引号 + 逗号 | `'apple','banana','cherry'` |
   | 双引号 + 逗号 | `"apple","banana","cherry"` |
-  | 单引号 + 逗号空格 | `'apple', 'banana', 'cherry'` |
-  | 双引号 + 逗号空格 | `"apple", "banana", "cherry"` |
+  | 无包裹 + 逗号 / 分号 / 冒号空格 | `apple,banana` · `apple;banana` · `apple: banana` |
 
-- 自动跳过空白行，并对包裹符与反斜杠做转义
+- 自动跳过空白行；有包裹时对包裹符与反斜杠做转义
 - 结果复制到剪贴板，并弹出系统通知
 
 ## 要求
@@ -70,8 +70,19 @@ open "Multiline to Single.alfredworkflow"
 Alfred → Workflows → **Multiline to Single** → `[x]`：
 
 - **Keyword**：触发关键词（默认 `m2s`）
-- **Default mode**：结果列表置顶的模式
-- **UI language**：界面语言（English / 中文）
+- **Custom modes**：每行一种模式，格式 `WRAPPER||SEPARATOR||可选标题`
+  - `WRAPPER` 留空表示不包裹
+  - 转义：`\s` 空格、`\t` Tab、`\\` 反斜杠
+  - `#` 开头为注释；调整行顺序即可调整结果列表顺序
+- **UI language**：自动标题/提示的语言（English / 中文）
+
+示例：
+
+```text
+'||,||Single quotes + comma
+||;||Join with semicolon
+||,\s||Comma + space (no quotes)
+```
 
 ## 社区 / Gallery
 

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-15
+
+### Added
+
+- **Custom modes** Workflow Configuration: define any wrap/separator combinations
+  (`WRAPPER||SEPARATOR||optional title`, with `\s` / `\t` escapes)
+- Default presets now also include unquoted joins (comma, semicolon, colon+space)
+
+### Changed
+
+- Removed the fixed “Default mode” popup; mode order is controlled by the custom modes list
+- Bumped workflow version to 1.2.0
+
 ## [1.1.0] - 2026-07-14
 
 ### Added
@@ -38,7 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Copy-to-clipboard output with notification
 - Packaging script `package.sh` and unit tests
 
-[Unreleased]: https://github.com/revolyw/alfred-multiline-to-single/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/revolyw/alfred-multiline-to-single/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/revolyw/alfred-multiline-to-single/releases/tag/v1.2.0
 [1.1.0]: https://github.com/revolyw/alfred-multiline-to-single/releases/tag/v1.1.0
 [1.0.1]: https://github.com/revolyw/alfred-multiline-to-single/releases/tag/v1.0.1
 [1.0.0]: https://github.com/revolyw/alfred-multiline-to-single/releases/tag/v1.0.0

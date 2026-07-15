@@ -186,19 +186,15 @@
 2. Type the keyword (default `m2s`).
 3. Choose a wrap/separator mode with ↑↓ and press ↩ to copy.
 
-## Modes
-
-* `'a','b','c'` — single quotes + comma
-* `"a","b","c"` — double quotes + comma
-* `'a', 'b', 'c'` — single quotes + comma+space
-* `"a", "b", "c"` — double quotes + comma+space
-
-Blank lines are skipped. Quote characters inside lines are escaped.
+Blank lines are skipped. Quote characters inside wrapped lines are escaped.
 
 ## Workflow’s Configuration
 
-* **Keyword** — change the Alfred keyword (default `m2s`)
-* **Default mode** — which mode appears first in the list
+* **Keyword** — Alfred keyword (default `m2s`)
+* **Custom modes** — one mode per line: `WRAPPER||SEPARATOR||optional title`
+  * Leave WRAPPER empty for no quotes
+  * Escapes: `\s` space, `\t` tab, `\\` backslash
+  * Reorder lines to change list order
 * **UI language** — English or Chinese labels
 
 ## Hotkey
@@ -265,36 +261,32 @@ License: MIT
 		</dict>
 		<dict>
 			<key>type</key>
-			<string>popupbutton</string>
+			<string>textarea</string>
 			<key>variable</key>
-			<string>default_mode</string>
+			<string>custom_modes</string>
 			<key>label</key>
-			<string>Default mode</string>
+			<string>Custom modes</string>
 			<key>description</key>
-			<string>Mode shown first when browsing results.</string>
+			<string>One mode per line: WRAPPER||SEPARATOR||optional title. Empty WRAPPER = no quotes. Escapes: \s = space, \t = tab. Lines starting with # are comments. Reorder lines to change result order.</string>
 			<key>config</key>
 			<dict>
 				<key>default</key>
-				<string>sq_comma</string>
-				<key>pairs</key>
-				<array>
-					<array>
-						<string>Single quotes + comma ('a','b')</string>
-						<string>sq_comma</string>
-					</array>
-					<array>
-						<string>Double quotes + comma ("a","b")</string>
-						<string>dq_comma</string>
-					</array>
-					<array>
-						<string>Single quotes + comma+space ('a', 'b')</string>
-						<string>sq_comma_space</string>
-					</array>
-					<array>
-						<string>Double quotes + comma+space ("a", "b")</string>
-						<string>dq_comma_space</string>
-					</array>
-				</array>
+				<string># WRAPPER||SEPARATOR||optional title
+# Leave WRAPPER empty for no quotes. Escapes: \s = space, \t = tab, \\ = backslash
+'||,||Single quotes + comma
+"||,||Double quotes + comma
+'||,\s||Single quotes + comma+space
+"||,\s||Double quotes + comma+space
+||,||Join with comma
+||;||Join with semicolon
+||:\s||Join with colon+space
+</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<false/>
+				<key>verticalsize</key>
+				<integer>10</integer>
 			</dict>
 		</dict>
 		<dict>
@@ -305,7 +297,7 @@ License: MIT
 			<key>label</key>
 			<string>UI language</string>
 			<key>description</key>
-			<string>Language for result titles and messages.</string>
+			<string>Language for auto-generated titles/hints when a custom title is omitted.</string>
 			<key>config</key>
 			<dict>
 				<key>default</key>
@@ -327,15 +319,24 @@ License: MIT
 	<key>variablesdontexport</key>
 	<array/>
 	<key>version</key>
-	<string>1.1.0</string>
+	<string>1.2.0</string>
 	<key>webaddress</key>
 	<string>https://github.com/revolyw/alfred-multiline-to-single</string>
 	<key>variables</key>
 	<dict>
 		<key>keyword</key>
 		<string>m2s</string>
-		<key>default_mode</key>
-		<string>sq_comma</string>
+		<key>custom_modes</key>
+		<string># WRAPPER||SEPARATOR||optional title
+# Leave WRAPPER empty for no quotes. Escapes: \s = space, \t = tab, \\ = backslash
+'||,||Single quotes + comma
+"||,||Double quotes + comma
+'||,\s||Single quotes + comma+space
+"||,\s||Double quotes + comma+space
+||,||Join with comma
+||;||Join with semicolon
+||:\s||Join with colon+space
+</string>
 		<key>ui_language</key>
 		<string>en</string>
 	</dict>

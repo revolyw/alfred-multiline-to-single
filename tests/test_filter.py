@@ -27,11 +27,9 @@ class ConvertTests(unittest.TestCase):
             "'apple','banana'",
         )
 
-    def test_double_quote_comma_space(self) -> None:
-        self.assertEqual(
-            m.convert(["apple", "banana"], '"', ", "),
-            '"apple", "banana"',
-        )
+    def test_no_wrap(self) -> None:
+        self.assertEqual(m.convert(["a", "b"], "", ";"), "a;b")
+        self.assertEqual(m.convert(["a", "b"], "", ", "), "a, b")
 
     def test_escapes_wrap_and_backslash(self) -> None:
         self.assertEqual(m.convert(["a'b"], "'", ","), r"'a\'b'")
@@ -39,26 +37,48 @@ class ConvertTests(unittest.TestCase):
         self.assertEqual(m.convert([r"a\b"], "'", ","), r"'a\\b'")
 
 
+class ParseModesTests(unittest.TestCase):
+    def test_parse_with_title_and_escape(self) -> None:
+        text = "'||,\\s||Nice\n||;||Semi\n# comment\n"
+        with mock.patch.dict(os.environ, {"ui_language": "en"}):
+            modes = m.parse_modes(text)
+        self.assertEqual(len(modes), 2)
+        self.assertEqual(modes[0].wrap, "'")
+        self.assertEqual(modes[0].separator, ", ")
+        self.assertEqual(modes[0].title, "Nice")
+        self.assertEqual(modes[1].wrap, "")
+        self.assertEqual(modes[1].separator, ";")
+        self.assertEqual(modes[1].title, "Semi")
+
+    def test_auto_title(self) -> None:
+        with mock.patch.dict(os.environ, {"ui_language": "en"}):
+            modes = m.parse_modes("||:")
+        self.assertEqual(modes[0].title, "Join with :")
+
+
 class BuildItemsTests(unittest.TestCase):
-    def test_modes_from_query_english(self) -> None:
-        with mock.patch.dict(os.environ, {"ui_language": "en", "default_mode": "sq_comma"}):
+    def test_default_modes_include_join_only(self) -> None:
+        with mock.patch.dict(os.environ, {"ui_language": "en"}, clear=False):
+            os.environ.pop("custom_modes", None)
             payload = m.build_items("x\ny")
-        self.assertEqual(len(payload["items"]), 4)
-        self.assertEqual(payload["items"][0]["title"], "Single quotes + comma")
-        self.assertEqual(payload["items"][0]["arg"], "'x','y'")
-        self.assertEqual(payload["items"][1]["arg"], '"x","y"')
-        self.assertTrue(payload["items"][0]["valid"])
+        args = [i["arg"] for i in payload["items"]]
+        self.assertIn("'x','y'", args)
+        self.assertIn('"x","y"', args)
+        self.assertIn("x,y", args)
+        self.assertIn("x;y", args)
+        self.assertIn("x: y", args)
 
-    def test_chinese_ui(self) -> None:
-        with mock.patch.dict(os.environ, {"ui_language": "zh"}):
-            payload = m.build_items("x\ny")
-        self.assertEqual(payload["items"][0]["title"], "单引号 + 逗号")
-
-    def test_default_mode_reorders(self) -> None:
-        with mock.patch.dict(os.environ, {"ui_language": "en", "default_mode": "dq_comma"}):
-            payload = m.build_items("x\ny")
-        self.assertEqual(payload["items"][0]["arg"], '"x","y"')
-        self.assertEqual(payload["items"][0]["title"], "Double quotes + comma")
+    def test_custom_modes_override(self) -> None:
+        custom = "||-||dash join\n'||.||dotted quotes"
+        with mock.patch.dict(
+            os.environ,
+            {"ui_language": "en", "custom_modes": custom},
+        ):
+            payload = m.build_items("a\nb")
+        self.assertEqual(len(payload["items"]), 2)
+        self.assertEqual(payload["items"][0]["arg"], "a-b")
+        self.assertEqual(payload["items"][0]["title"], "dash join")
+        self.assertEqual(payload["items"][1]["arg"], "'a'.'b'")
 
     def test_empty_shows_invalid_item(self) -> None:
         with mock.patch.dict(os.environ, {"ui_language": "en"}):
@@ -70,6 +90,7 @@ class BuildItemsTests(unittest.TestCase):
 
     def test_clipboard_fallback(self) -> None:
         with mock.patch.dict(os.environ, {"ui_language": "zh"}):
+            os.environ.pop("custom_modes", None)
             with mock.patch.object(m, "read_clipboard", return_value="one\ntwo"):
                 payload = m.build_items("   ")
         self.assertEqual(payload["items"][0]["arg"], "'one','two'")
@@ -77,6 +98,7 @@ class BuildItemsTests(unittest.TestCase):
 
     def test_main_prints_json(self) -> None:
         with mock.patch.dict(os.environ, {"ui_language": "en"}):
+            os.environ.pop("custom_modes", None)
             with mock.patch.object(m.sys, "argv", ["filter.py", "a\nb"]):
                 with mock.patch("builtins.print") as printed:
                     m.main()

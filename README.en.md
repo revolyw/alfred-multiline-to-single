@@ -13,16 +13,16 @@ An [Alfred](https://www.alfredapp.com/) workflow that joins multiline text into 
 ## Features
 
 - Reads multiline text from the **clipboard** by default (keyword argument / selection hotkey also supported)
-- Four modes:
+- Pick a wrap/separator mode with ↑↓; define **your own combinations** in Workflow Configuration
+- Sensible built-in defaults, for example:
 
   | Mode | Example |
   | --- | --- |
   | Single quotes + comma | `'apple','banana','cherry'` |
   | Double quotes + comma | `"apple","banana","cherry"` |
-  | Single quotes + comma+space | `'apple', 'banana', 'cherry'` |
-  | Double quotes + comma+space | `"apple", "banana", "cherry"` |
+  | No wrap + comma / semicolon / colon+space | `apple,banana` · `apple;banana` · `apple: banana` |
 
-- Skips blank lines and escapes wrap characters / backslashes
+- Skips blank lines; escapes wrap characters / backslashes when wrapping
 - Copies the result to the clipboard and shows a notification
 
 ## Requirements
@@ -68,8 +68,19 @@ Optional: bind the Hotkey object in the workflow (argument = Selection in macOS)
 Alfred → Workflows → **Multiline to Single** → `[x]`:
 
 - **Keyword** (default `m2s`)
-- **Default mode** (which option appears first)
-- **UI language** (English / Chinese)
+- **Custom modes** — one mode per line: `WRAPPER||SEPARATOR||optional title`
+  - Empty `WRAPPER` = no quotes
+  - Escapes: `\s` space, `\t` tab, `\\` backslash
+  - Lines starting with `#` are comments; reorder lines to change the result order
+- **UI language** (English / Chinese) for auto-generated titles/hints
+
+Example:
+
+```text
+'||,||Single quotes + comma
+||;||Join with semicolon
+||,\s||Comma + space (no quotes)
+```
 
 ### Community / Gallery
 
